@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61","wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hotelrates"
+version = "0.1.0"
+description = "HotelRates application"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [ { name = "Xuan" } ]
+
+dependencies = [
+  "httpx==0.28.1",
+  "loguru",
+  "numpy==2.3.4",
+  "pandas==2.3.3",
+  "requests==2.32.5",
+  "gspread",
+  "oauth2client",
+  "gspread-dataframe",
+  "schedule",
+  "pyyaml",
+  "python-dotenv"
+]
+
+[project.scripts]
+# Maps the `hotelrates` console command to `run:main`.
+# If `run.py` exposes a `main()` function this will call it when installed.
+hotelrates = "run:main"
+
+[tool.setuptools]
+packages = { find = {} }

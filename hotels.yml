@@ -1,0 +1,54 @@
+# Hotel Panorama:
+#   id: "panorama"
+#   url_expedia: ""
+#   id_tripadvisor: "g187224-d219923"
+#   name: Hotel Panorama
+#   short: Panorama
+Hotel de la Poste:
+  id: "laposte"
+  url_expedia: ""
+  id_tripadvisor: "g1380878-d2184159"
+  name: Hotel de la Poste
+  short: LaPoste
+Hotel Casabella:
+  id: "casabella"
+  url_expedia: ""
+  id_tripadvisor: "g666506-d6869362"
+  name: Hotel Casabella
+  short: Casabella
+Hotel Best Western Elixir Grasse:
+  id: "bestwestern"
+  url_expedia: ""
+  id_tripadvisor: "g187224-d248537"
+  name: Best Western Grasse
+  short: BestWestern
+BnB Hotel Mouans:
+  id: bnbmouans
+  url_expedia: ""
+  id_tripadvisor: "g666506-d1071475"
+  name: BnB Hotel Mouans Sartoux
+  short: BnBMouans
+Ibis Budget Cannes Centre:
+  id: ibisbudgetcannes
+  url_expedia: ""
+  id_tripadvisor: "g187221-d584620"
+  name: "Ibis Budget Cannes Centre"
+  short: "IbisCannes"
+Ibis Mouans Sartoux:
+  id: ibismouans
+  url_expedia: ""
+  id_tripadvisor: "g666506-d1200941"
+  name: "Ibis Mouans Sartoux"
+  short: "IbisMouans"
+Hotel Bellaudiere:
+  id: bellaudiere
+  url_expedia: ""
+  id_tripadvisor: "g187224-d219924"
+  name: "Hotel Bellaudiere"
+  short: "Bellaudiere"
+# F1 Villeneuve-Loubet:
+#   id: f1villeneuve
+#   url_expedia: ""
+#   id_tripadvisor: "g187247-d507525"
+#   name: "F1 Villeneuve-Loubet"
+#   short: "F1villeneuve"
