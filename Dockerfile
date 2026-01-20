@@ -35,6 +35,7 @@ RUN uv sync
 
 # 8. Place the virtual environment in the PATH
 ENV PATH="/app/.venv/bin:$PATH"
+ENV TZ="Europe/Paris"
 
 # Expose port
 # EXPOSE 8000
