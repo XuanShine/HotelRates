@@ -75,6 +75,14 @@ def schedule_fill_one_missing_price_random(sheet_key):
     veille_competitive.fill_one_missing_price(df, trip_key, random=True)
     veille_competitive.export_df(sheet_key, df, trip_key)
     logger.info("fill_one_missing_price_random... DONE")
+
+@logger.catch
+def schedule_correct_price_random(sheet_key):
+    logger.info(f"correct_price_random (key:{sheet_key})")
+    df, trip_key = veille_competitive.load_df_and_concurrents(sheet_key)
+    veille_competitive.correct_price_random(df, trip_key)
+    veille_competitive.export_df(sheet_key, df, trip_key)
+    logger.info("correct_price_random... DONE")
     
 @logger.catch
 def schedule_fill_one_missing_price(sheet_key):
@@ -163,7 +171,7 @@ def load_clients():
         CLIENTS = yaml.safe_load(f_in)
     for name, data_client in CLIENTS.items():
         if data_client.get("veille"):
-            schedule.every(7).to(13).minutes.do(schedule_fill_one_missing_price_random, data_client["key"])
+            schedule.every(7).to(13).minutes.do(schedule_correct_price_random, data_client["key"])
             schedule.every().day.at("01:10").do(schedule_find_price_today, data_client["key"])
             
         if data_client.get("calcul") and data_client.get("channelManager") and data_client.get("dispo"):

@@ -78,6 +78,35 @@ def fill_one_missing_price(df, trip_key, random=False):
     return df
 
 
+def correct_price_random(df, trip_key):
+    """Sélectionne une case au hasard (date et hôtel) et met à jour le prix avec xotelo.cost"""
+    # Généré par copilot, à tester
+    hotel = choice(list(trip_key.keys()))
+    
+    # Exclure les dates passées
+    today = pd.Timestamp.now().normalize()
+    valid_dates = df.index[df.index >= today]
+    
+    if valid_dates.empty:
+        logger.warning("No valid future dates found in index")
+        return df
+
+    # Augmente la probabilité de choisir les premiers index (ex: dates les plus proches)
+    # On utilise des poids décroissants linéairement
+    n = len(valid_dates)
+    weights = np.arange(n, 0, -1)
+    probabilities = weights / weights.sum()
+    date_val = valid_dates[np.random.choice(n, p=probabilities)]
+    
+    logger.debug(f"Random check for {date_val}, {hotel}")
+    
+    new_price = xotelo.cost(trip_key[hotel], date_val) or np.nan
+    if new_price is not None:
+        df.at[date_val, hotel] = new_price
+        
+    return df
+
+
 def export_df(sheet_key, df, trip_key):
     WORKSHEET = ss.client.open_by_key(sheet_key).worksheet("Feuille1")
     headers = WORKSHEET.row_values(1)
