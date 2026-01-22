@@ -1,3 +1,4 @@
+from ansi2html import Ansi2HTMLConverter
 from py4web import action
 import os
 
@@ -19,5 +20,21 @@ def index():
     except Exception as e:
         return f"Erreur lors de la lecture des logs: {e}"
 
+    conv = Ansi2HTMLConverter(dark_bg=True)
+    html_content = conv.convert(content)
+
     # Retourne les logs dans une balise <pre> pour garder le formatage
-    return f"<html><body><h1>Logs HotelRates</h1><pre>{content}</pre></body></html>"
+    return f"""
+    <html>
+        <head>
+            <title>HotelRates Logs</title>
+            <meta http-equiv="refresh" content="5">
+            <style>
+                body {{ background-color: #111; color: #eee; font-family: monospace; padding: 20px; }}
+            </style>
+        </head>
+        <body>
+            {html_content}
+        </body>
+    </html>
+    """

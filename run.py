@@ -37,6 +37,20 @@ def setup_logging():
     # 2. On récupère le niveau de log via une variable d'environnement (défaut: INFO)
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 
+    # 4. On ajoute un handler pour écrire dans un fichier
+    log_file = os.path.join(C, "logs", "hotelrates.log")
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    logger.add(
+        log_file,
+        rotation="10 MB",
+        retention="10 days",
+        level="DEBUG",
+        encoding="utf-8",
+        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+        delay=False,
+        colorize=True,
+    )
+    
     # 3. On ajoute un handler propre sur la sortie standard (STDOUT)
     logger.add(
         sys.stdout,
@@ -45,19 +59,6 @@ def setup_logging():
         colorize=True,
         enqueue=True  # Important pour Docker : gère les logs de manière asynchrone (thread-safe)
     )
-
-    # 4. On ajoute un handler pour écrire dans un fichier
-    log_file = os.path.join(C, "logs", "hotelrates.log")
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
-    logger.add(
-        log_file,
-        rotation="10 MB",
-        retention="10 days",
-        level="INFO",
-        encoding="utf-8",
-        enqueue=True
-    )
-
 
 
 
