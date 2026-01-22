@@ -75,7 +75,10 @@ from datetime import date
 import yaml
 import gspread
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
-from sheet import spreadsheet as ss
+try:
+    from sheet import spreadsheet as ss
+except ImportError:
+    from .sheet import spreadsheet as ss
 import json
 from utils import load_df
 

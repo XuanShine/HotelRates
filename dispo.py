@@ -1,19 +1,31 @@
-import sys, os
-
-C = os.path.abspath(os.path.dirname("__file__"))
-
+import sys
+import os
 import numpy as np
 import pandas as pd
 from functools import reduce
 from datetime import date
-import gspread
-from gspread_dataframe import get_as_dataframe, set_with_dataframe
-from sheet import spreadsheet as ss
 from datetime import timedelta
-from utils import load_df
+import gspread
 from loguru import logger
+from gspread_dataframe import get_as_dataframe, set_with_dataframe
 
-from wubook_api import get_avail, REAL_ROOMS
+C = os.path.abspath(os.path.dirname("__file__"))
+
+try:
+    from sheet import spreadsheet as ss
+except ImportError:
+    from .sheet import spreadsheet as ss
+
+try:
+    from utils import load_df
+except ImportError:
+    from .utils import load_df
+
+
+try:
+    from wubook_api import get_avail, REAL_ROOMS
+except ImportError:
+    from .wubook_api import get_avail, REAL_ROOMS
 
 def export_dispo(sheet_key, df):
     WORKSHEET = ss.client.open_by_key(sheet_key).worksheet("Feuille1")
@@ -21,7 +33,7 @@ def export_dispo(sheet_key, df):
     try:
         col_index = headers.index("Libre") + 1
     except ValueError:
-        logger.error(f"Column Libre not found in the Sheet!")
+        logger.error("Column Libre not found in the Sheet!")
     df_subset = df[["Libre"]]
     set_with_dataframe(
         WORKSHEET, 

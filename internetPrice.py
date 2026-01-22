@@ -1,7 +1,6 @@
 # %%
-import sys, os
-
-C = os.path.abspath(os.path.dirname(__file__))
+import sys
+import os
 
 import numpy as np
 import pandas as pd
@@ -9,10 +8,18 @@ from functools import reduce
 from datetime import date
 import gspread
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
-from sheet import spreadsheet as ss
+try:
+    from sheet import spreadsheet as ss
+except ImportError:
+    from .sheet import spreadsheet as ss
 from datetime import timedelta
 
-from wubook_api import get_avail, REAL_ROOMS, upload_prices, room_to_code
+C = os.path.abspath(os.path.dirname(__file__))
+
+try:
+    from wubook_api import get_avail, REAL_ROOMS, upload_prices, room_to_code
+except ImportError:
+    from .wubook_api import get_avail, REAL_ROOMS, upload_prices, room_to_code
 
 WORKSHEET2 = ss.client.open("Prix Aroma").worksheet("Feuille2")
 
