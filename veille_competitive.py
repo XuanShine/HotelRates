@@ -5,14 +5,21 @@
 # TODO : re-vérifier les prix avec un algo et un scraping xotelo avancée (sur plusiers jours)
 # TODO : scraper avec booking, expedia, sur le site de l’hôtel, trivago, tripadvisor
 
+from enum import StrEnum, auto
 import yaml
 import pandas as pd
 import numpy as np
 import gspread
 from random import choice
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
-from sheet import spreadsheet as ss
-import xotelo
+try:
+    from sheet import spreadsheet as ss
+except ImportError:
+    from .sheet import spreadsheet as ss
+try:
+    import xotelo
+except ImportError:
+    from . import xotelo
 from datetime import date
 pd.set_option('future.no_silent_downcasting', True)
 import os
@@ -22,6 +29,12 @@ from loguru import logger
 
 # Get the folder where this script is located
 base_dir = os.path.dirname(os.path.abspath(__file__))
+
+
+class RandomMode(StrEnum):
+    LINEAR = auto()
+    EXPONENTIAL = auto()
+    NONE = auto()
 
 
 def load_df_and_concurrents(key:str) -> tuple[object, dict]:
@@ -78,7 +91,7 @@ def fill_one_missing_price(df, trip_key, random=False):
     return df
 
 
-def correct_price_random(df, trip_key):
+def correct_price_random(df, trip_key, randomMode: RandomMode = RandomMode.EXPONENTIAL):
     """Sélectionne une case au hasard (date et hôtel) et met à jour le prix avec xotelo.cost"""
     # Généré par copilot, à tester
     hotel = choice(list(trip_key.keys()))
@@ -94,8 +107,15 @@ def correct_price_random(df, trip_key):
     # Augmente la probabilité de choisir les premiers index (ex: dates les plus proches)
     # On utilise des poids décroissants linéairement
     n = len(valid_dates)
-    weights = np.arange(n, 0, -1)
-    probabilities = weights / weights.sum()
+    if randomMode == RandomMode.LINEAR:
+        weights = np.arange(n, 0, -1)
+        probabilities = weights / weights.sum()
+    elif randomMode == RandomMode.EXPONENTIAL:
+        weights = np.exp(-0.1 * np.arange(n))  # Poids exponentiels pour une décroissance plus marquée
+        probabilities = weights / weights.sum()
+    elif randomMode == RandomMode.NONE:
+        probabilities = None
+        
     date_val = valid_dates[np.random.choice(n, p=probabilities)]
     
     logger.debug(f"Random check for {date_val}, {hotel}")
