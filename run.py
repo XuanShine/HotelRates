@@ -1,3 +1,4 @@
+from random import randrange
 import schedule
 import time
 import functools
@@ -5,6 +6,7 @@ import threading
 import os, sys
 import yaml
 
+from veille_competitive import RandomMode
 import veille_competitive
 import internetPrice
 import dispo
@@ -93,7 +95,12 @@ def schedule_fill_one_missing_price_random(sheet_key):
 def schedule_correct_price_random(sheet_key):
     logger.info(f"correct_price_random... (key:{sheet_key})")
     df, trip_key = veille_competitive.load_df_and_concurrents(sheet_key)
-    veille_competitive.correct_price_random(df, trip_key)
+    if (r := randrange(0, 3)) == 0:  # 1 chance sur 3 de remplir un prix manquant
+        veille_competitive.correct_price_random(df, trip_key, random=RandomMode.EXPONENTIAL)
+    elif r == 1:
+        veille_competitive.correct_price_random(df, trip_key, random=RandomMode.LINEAR)
+    else:
+        veille_competitive.correct_price_random(df, trip_key, random=RandomMode.NONE)
     veille_competitive.export_df(sheet_key, df, trip_key)
     logger.info("correct_price_random... DONE")
     
