@@ -96,11 +96,11 @@ def schedule_correct_price_random(sheet_key):
     logger.info(f"correct_price_random... (key:{sheet_key})")
     df, trip_key = veille_competitive.load_df_and_concurrents(sheet_key)
     if (r := randrange(0, 3)) == 0:  # 1 chance sur 3 de remplir un prix manquant
-        veille_competitive.correct_price_random(df, trip_key, random=RandomMode.EXPONENTIAL)
+        veille_competitive.correct_price_random(df, trip_key, randomMode=RandomMode.EXPONENTIAL)
     elif r == 1:
-        veille_competitive.correct_price_random(df, trip_key, random=RandomMode.LINEAR)
+        veille_competitive.correct_price_random(df, trip_key, randomMode=RandomMode.LINEAR)
     else:
-        veille_competitive.correct_price_random(df, trip_key, random=RandomMode.NONE)
+        veille_competitive.correct_price_random(df, trip_key, randomMode=RandomMode.NONE)
     veille_competitive.export_df(sheet_key, df, trip_key)
     logger.info("correct_price_random... DONE")
     
