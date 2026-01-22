@@ -46,6 +46,18 @@ def setup_logging():
         enqueue=True  # Important pour Docker : gère les logs de manière asynchrone (thread-safe)
     )
 
+    # 4. On ajoute un handler pour écrire dans un fichier
+    log_file = os.path.join(C, "logs", "hotelrates.log")
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    logger.add(
+        log_file,
+        rotation="10 MB",
+        retention="10 days",
+        level="INFO",
+        encoding="utf-8",
+        enqueue=True
+    )
+
 
 
 
