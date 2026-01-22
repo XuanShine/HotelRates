@@ -31,11 +31,13 @@ def load_config(sheet_key) -> pd.DataFrame:
         ConnectionError: En cas d'échec de résolution DNS ou de connexion aux API Google.
     """
     try:
+        if ss.client is None:
+            raise ConnectionError("Google Sheets client not initialized")
         WORKSHEET = ss.client.open_by_key(sheet_key).worksheet("config")
         df = get_as_dataframe(WORKSHEET, index_col=0, skip_blank_lines=True, evaluate_formulas=True, dtype={'value': object})
         # config['value'] = config["value"].astype('object')
         return df
-    except google.auth.exceptions.TransportError as e:
+    except (google.auth.exceptions.TransportError, AttributeError) as e:
         raise ConnectionError(e)
 
 def reset_update_go(config):
@@ -43,6 +45,8 @@ def reset_update_go(config):
 
 def export_config(sheet_key, df):
     try:
+        if ss.client is None:
+            raise ConnectionError("Google Sheets client not initialized")
         WORKSHEET = ss.client.open_by_key(sheet_key).worksheet("config")
         set_with_dataframe(
             WORKSHEET,

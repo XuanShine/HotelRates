@@ -26,10 +26,16 @@ credentials = {
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/paulxuan%40operation-300.iam.gserviceaccount.com"
 }
 
-credentials["private_key"] = os.getenv('GOOGLE_SHEET_PRIVATE_KEY')
-# creds = ServiceAccountCredentials.from_json_keyfile_name(os.path.join(C, 'credentials.json'), scope)
-creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials, scope)
-client = gspread.authorize(creds)
+private_key = os.getenv('GOOGLE_SHEET_PRIVATE_KEY')
+if private_key:
+    credentials["private_key"] = private_key.replace('\\n', '\n')
+
+client = None
+try:
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials, scope)
+    client = gspread.authorize(creds)
+except Exception as e:
+    print(f"FAILED to initialize Google Sheets client: {e}")
 
 # Find a workbook by name and open the first sheet
 # Make sure you use the right name here.
