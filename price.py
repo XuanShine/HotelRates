@@ -98,7 +98,7 @@ WORKSHEET = ss.client.open("Prix Aroma").worksheet("Feuille1")
 def calcul_price(ecart_TO, echelle_a_comparer:list):
     if not echelle_a_comparer:
         raise ValueError("echelle_a_comparer vide")
-    echelle_a_comparer = [x for x in echelle_a_comparer if isinstance(x, (int, float))]
+    echelle_a_comparer = [x for x in echelle_a_comparer if (not np.isnan(x)) and isinstance(x, (int, float))]
     # echelle_a_comparer: prix des concurrent
     ecarts = np.linspace(-25, 15, len(echelle_a_comparer)).tolist()
     prix_conseille = max(45, np.interp(ecart_TO, ecarts, sorted(echelle_a_comparer)))
@@ -171,7 +171,7 @@ def calcul_price_df(df):
     
     # On remplie les prix manquants des concurrents
     df2 = df.copy()
-    df2[list(SHORT_NAMES)] = df2[list(SHORT_NAMES)].ffill()
+    df2[list(SHORT_NAMES)] = df2[list(SHORT_NAMES)].ffill().bfill()
 
     mask_maj_vide = df2["maj"].isna()
     mask_maj_is_number = pd.to_numeric(df2["maj"], errors="coerce").notna()
