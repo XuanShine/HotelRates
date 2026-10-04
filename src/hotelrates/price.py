@@ -75,13 +75,14 @@ from datetime import date
 import yaml
 import gspread
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
-from sheet import spreadsheet as ss
+from .adapters import sheets as ss
 import json
-from utils import load_df
+from .adapters.sheets import load_df
+from .paths import REPO_ROOT
 
 from loguru import logger
 
-YAML_HOTELS = os.path.join(C, "hotels.yml")
+YAML_HOTELS = os.path.join(REPO_ROOT, "hotels.yml")
 
 with open(YAML_HOTELS, "r") as f_in:
     HOTELS = yaml.safe_load(f_in)

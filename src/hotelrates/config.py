@@ -5,7 +5,7 @@ import numpy as np
 import gspread
 from random import choice
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
-from sheet import spreadsheet as ss
+from .adapters import sheets as ss
 from datetime import date
 pd.set_option('future.no_silent_downcasting', True)
 import os

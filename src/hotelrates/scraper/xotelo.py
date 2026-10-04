@@ -35,8 +35,8 @@ def cost(hotel_key, date):
     if not data:
         return 0
     logger.debug(f"data: {data}")
-    minCost  = min(data, key=(lambda site: site.get('rate', 0)), default=0)
-    minCost = minCost.get('rate', 0) + minCost.get('tax', 0)
+    minCost  = min(data, key=(lambda site: site.get('rate') or 0), default=0)
+    minCost = (minCost.get('rate') or 0) + (minCost.get('tax') or 0)
     return int(minCost)
 
 
@@ -52,4 +52,4 @@ def get_price(hotel_key, start, end):
     return result
 
 if __name__ == "__main__":
-    print(cost("g187221-d584620", date(2026, 1, 22)))
+    print(cost("g187221-d584620", date(2026, 11, 22)))

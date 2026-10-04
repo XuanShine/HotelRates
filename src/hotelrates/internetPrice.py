@@ -9,10 +9,10 @@ from functools import reduce
 from datetime import date
 import gspread
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
-from sheet import spreadsheet as ss
+from .adapters import sheets as ss
 from datetime import timedelta
 
-from wubook_api import get_avail, REAL_ROOMS, upload_prices, room_to_code
+from .wubook_api import get_avail, REAL_ROOMS, upload_prices, room_to_code
 
 WORKSHEET2 = ss.client.open("Prix Aroma").worksheet("Feuille2")
 

@@ -1,0 +1,1 @@
+"""HotelRates scheduler package."""

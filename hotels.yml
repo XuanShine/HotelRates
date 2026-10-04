@@ -16,6 +16,7 @@ Hotel Casabella:
   id_tripadvisor: "g666506-d6869362"
   name: Hotel Casabella
   short: Casabella
+  direct: "scrape_casabella.py"
 Hotel Best Western Elixir Grasse:
   id: "bestwestern"
   url_expedia: ""

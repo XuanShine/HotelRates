@@ -8,12 +8,12 @@ from functools import reduce
 from datetime import date
 import gspread
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
-from sheet import spreadsheet as ss
+from .adapters import sheets as ss
 from datetime import timedelta
-from utils import load_df
+from .adapters.sheets import load_df
 from loguru import logger
 
-from wubook_api import get_avail, REAL_ROOMS
+from .wubook_api import get_avail, REAL_ROOMS
 
 def export_dispo(sheet_key, df):
     WORKSHEET = ss.client.open_by_key(sheet_key).worksheet("Feuille1")

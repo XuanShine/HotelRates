@@ -1,12 +1,13 @@
 Aroma: 
     key: 10vet57RQGSTB2SLOLhwJPehER9nU6gixURsYHv6NULU
     veille: True
+    days: 30
     calcul: True
     channelManager: True
     dispo: True
-HotelLaPoste: 
-    key: 1RdMYizuQI7Mlv_Qt2Nswvqqwk1s8xHLguVc-GTH4PVQ
-    veille: True
-    calcul: False
-    channelManager: False
-    dispo: False
+# HotelLaPoste: 
+#     key: 1RdMYizuQI7Mlv_Qt2Nswvqqwk1s8xHLguVc-GTH4PVQ
+#     veille: True
+#     calcul: False
+#     channelManager: False
+#     dispo: False

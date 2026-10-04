@@ -22,13 +22,12 @@ dependencies = [
   "gspread-dataframe",
   "schedule",
   "pyyaml",
-  "python-dotenv"
+  "python-dotenv",
+  "beautifulsoup4"
 ]
 
 [project.scripts]
-# Maps the `hotelrates` console command to `run:main`.
-# If `run.py` exposes a `main()` function this will call it when installed.
-hotelrates = "run:main"
+hotelrates = "hotelrates.scheduler:main"
 
-[tool.setuptools]
-packages = { find = {} }
+[tool.setuptools.packages.find]
+where = ["src"]

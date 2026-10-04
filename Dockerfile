@@ -24,8 +24,10 @@ RUN uv pip install -r pyproject.toml
 # Copy the entire project
 COPY . .
 
+ENV PYTHONPATH=/app/src
+
 # Expose port if needed (adjust as per your app)
 # EXPOSE 6001
 
 # Run the application
-CMD ["python", "run.py"]
+CMD ["python", "-m", "hotelrates.scheduler"]
