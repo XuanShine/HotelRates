@@ -15,7 +15,7 @@ from .adapters import sheets as ss
 from .paths import REPO_ROOT
 from .scraper import xotelo
 import importlib
-from datetime import date
+from datetime import date, datetime, timedelta
 pd.set_option('future.no_silent_downcasting', True)
 import os
 
@@ -71,8 +71,67 @@ def _direct_price(module_name, night):
     return int(price)
 
 
+def _night_date(night) -> date:
+    if isinstance(night, datetime):
+        return night.date()
+    if isinstance(night, date):
+        return night
+    return pd.Timestamp(night).date()
+
+
+def _positive_price(price) -> int:
+    if not price or price is False:
+        return 0
+    try:
+        value = int(price)
+    except (TypeError, ValueError):
+        return 0
+    return value if value > 0 else 0
+
+
+def _xotelo_price(tr_key, night) -> int:
+    try:
+        return _positive_price(xotelo.cost(tr_key, night))
+    except Exception as e:
+        logger.warning(f"xotelo.cost a échoué: {e}")
+        return 0
+
+
+def _agoda_price(hotel, night) -> int:
+    """Prix Agoda d'une colonne du sheet. 0 si absent ou en erreur."""
+    from .scraper.scrape_agoda_grasse import scrape_sheet_hotels
+
+    checkin = _night_date(night)
+    try:
+        found = scrape_sheet_hotels(checkin, [hotel], headless=True)
+    except Exception as e:
+        logger.warning(f"scrape_agoda_grasse a échoué pour {hotel}: {e}")
+        return 0
+    card = found.get(hotel)
+    if card is None:
+        return 0
+    return _positive_price(card.price_eur)
+
+
+def _trip_price(hotel, night) -> int:
+    """Prix Trip.com d'une colonne du sheet. 0 si absent ou en erreur."""
+    from .scraper.scrape_agoda_grasse import match_sheet_hotels
+    from .scraper.scrape_trip_grasse import scrape_trip_grasse
+
+    checkin = _night_date(night)
+    try:
+        cards = scrape_trip_grasse(checkin, checkin + timedelta(days=1), limit=30)
+    except Exception as e:
+        logger.warning(f"scrape_trip_grasse a échoué pour {hotel}: {e}")
+        return 0
+    card = match_sheet_hotels(cards, [hotel]).get(hotel)
+    if card is None:
+        return 0
+    return _positive_price(card.price_eur)
+
+
 def fetch_price(hotel, tr_key, night):
-    """Prix direct (hotels.yml) puis Xotelo si le direct est vide ou en erreur."""
+    """Prix direct, puis Xotelo, puis Agoda, puis Trip.com."""
     module_name = DIRECT_BY_SHORT.get(hotel) or DIRECT_BY_TRIP.get(str(tr_key))
     if module_name:
         price = _direct_price(module_name, night)
@@ -80,7 +139,24 @@ def fetch_price(hotel, tr_key, night):
             logger.debug(f"{hotel} via {module_name}: {price}")
             return price
         logger.info(f"{hotel}: {module_name} sans prix, fallback xotelo")
-    return xotelo.cost(tr_key, night)
+
+    price = _xotelo_price(tr_key, night)
+    if price > 0:
+        logger.debug(f"{hotel} via xotelo: {price}")
+        return price
+    logger.info(f"{hotel}: xotelo sans prix, fallback scrape_agoda_grasse")
+
+    price = _agoda_price(hotel, night)
+    if price > 0:
+        logger.debug(f"{hotel} via scrape_agoda_grasse: {price}")
+        return price
+    logger.info(f"{hotel}: scrape_agoda_grasse sans prix, fallback scrape_trip_grasse")
+
+    price = _trip_price(hotel, night)
+    if price > 0:
+        logger.debug(f"{hotel} via scrape_trip_grasse: {price}")
+        return price
+    return 0
 
 
 def load_df_and_concurrents(key:str) -> tuple[object, dict]:
