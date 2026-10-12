@@ -1,33 +1,25 @@
 # Multi-stage build for HotelRates app
 FROM python:3.14-slim
 
-# Set working directory
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-# Set Python to run unbuffered
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1 \
+    UV_SYSTEM_PYTHON=1 \
+    UV_LINK_MODE=copy \
+    TZ=Europe/Paris
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
-RUN pip install uv
+# Install the project (pyproject.toml is not a requirements file)
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN uv pip install --system .
 
-# Copy pyproject.toml and install dependencies
-COPY pyproject.toml .
-
-# Install Python dependencies
-RUN uv pip install -r pyproject.toml
-
-# Copy the entire project
 COPY . .
 
-ENV PYTHONPATH=/app/src
-
-# Expose port if needed (adjust as per your app)
-# EXPOSE 6001
-
-# Run the application
-CMD ["python", "-m", "hotelrates.scheduler"]
+CMD ["python", "run.py"]

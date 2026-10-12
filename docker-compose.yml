@@ -1,0 +1,11 @@
+services:
+  hotelrates:
+    build: .
+    image: hotelrates:latest
+    container_name: hotelrates
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      TZ: Europe/Paris
+      LOG_LEVEL: INFO
