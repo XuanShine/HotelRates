@@ -52,4 +52,4 @@ def get_price(hotel_key, start, end):
     return result
 
 if __name__ == "__main__":
-    print(cost("g187221-d584620", date(2026, 11, 22)))
+    print(cost("g187221-d584620", date.today()))

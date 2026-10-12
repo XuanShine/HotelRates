@@ -176,17 +176,7 @@ def load_clients():
             schedule.every(10).minutes.do(
                 schedule_update_random_price,
                 data_client["key"],
-                30,
-            )
-            schedule.every(15).minutes.do(
-                schedule_update_random_price,
-                data_client["key"],
-                60,
-            )
-            schedule.every(30).minutes.do(
-                schedule_update_random_price,
-                data_client["key"],
-                365,
+                data_client.get("days", 30),
             )
         if data_client.get("calcul") and data_client.get("channelManager") and data_client.get("dispo"):
             schedule.every(10).minutes.do(yield_revenue, data_client["key"])

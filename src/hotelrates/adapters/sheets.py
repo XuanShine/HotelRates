@@ -18,27 +18,20 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
-# Fallback when GOOGLE_SHEET_CREDENTIALS_JSON is unset (legacy split env).
-_SERVICE_ACCOUNT_META = {
-    "type": "service_account",
-    "project_id": "operation-300",
-    "private_key_id": "909975fa4d7e452f97f51c2fde66514d54476d78",
-    "client_email": "paulxuan@operation-300.iam.gserviceaccount.com",
-    "client_id": "105205709115878599213",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/paulxuan%40operation-300.iam.gserviceaccount.com",
-}
-
-
 def _service_account_info():
     raw = os.getenv("GOOGLE_SHEET_CREDENTIALS_JSON")
     if raw:
         return json.loads(raw)
-    info = dict(_SERVICE_ACCOUNT_META)
-    info["private_key"] = os.getenv("GOOGLE_SHEET_PRIVATE_KEY")
-    return info
+    path = os.getenv("GOOGLE_SHEET_CREDENTIALS_FILE") or os.getenv(
+        "GOOGLE_APPLICATION_CREDENTIALS"
+    )
+    if path:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    raise RuntimeError(
+        "Google Sheets credentials are not configured. "
+        "Set GOOGLE_SHEET_CREDENTIALS_JSON or GOOGLE_SHEET_CREDENTIALS_FILE."
+    )
 
 
 _creds = ServiceAccountCredentials.from_json_keyfile_dict(_service_account_info(), SCOPES)
