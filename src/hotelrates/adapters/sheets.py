@@ -18,6 +18,23 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
+# Public service-account identity. The private key stays in the environment.
+_SERVICE_ACCOUNT = {
+    "type": "service_account",
+    "project_id": "operation-300",
+    "private_key_id": "909975fa4d7e452f97f51c2fde66514d54476d78",
+    "client_email": "paulxuan@operation-300.iam.gserviceaccount.com",
+    "client_id": "105205709115878599213",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": (
+        "https://www.googleapis.com/robot/v1/metadata/x509/"
+        "paulxuan%40operation-300.iam.gserviceaccount.com"
+    ),
+}
+
+
 def _service_account_info():
     raw = os.getenv("GOOGLE_SHEET_CREDENTIALS_JSON")
     if raw:
@@ -28,9 +45,15 @@ def _service_account_info():
     if path:
         with open(path, encoding="utf-8") as f:
             return json.load(f)
+    private_key = os.getenv("GOOGLE_SHEET_PRIVATE_KEY")
+    if private_key:
+        info = dict(_SERVICE_ACCOUNT)
+        info["private_key"] = private_key.replace("\\n", "\n")
+        return info
     raise RuntimeError(
         "Google Sheets credentials are not configured. "
-        "Set GOOGLE_SHEET_CREDENTIALS_JSON or GOOGLE_SHEET_CREDENTIALS_FILE."
+        "Set GOOGLE_SHEET_CREDENTIALS_JSON, GOOGLE_SHEET_CREDENTIALS_FILE, "
+        "or GOOGLE_SHEET_PRIVATE_KEY."
     )
 
 
