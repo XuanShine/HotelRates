@@ -140,7 +140,12 @@ def upload_price(sheet_key):
     
 @logger.catch
 def watch_config(sheet_key, data_client):
-    config_data = config.load_config(sheet_key)
+    try:
+        config_data = config.load_config(sheet_key)
+    except ConnectionError as e:
+        logger.debug(f"ConnectionError while loading config for key {sheet_key}: {e}")
+        logger.info("ConnectionError in watch_config, skipping this run...")
+        return
     if config_data.loc["update_go", "value"]:
         logger.info(f"UPDATE_GO... (key: {sheet_key})")
         
