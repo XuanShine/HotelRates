@@ -18,7 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install the project (pyproject.toml is not a requirements file)
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN uv pip install --system .
+RUN uv pip install --system . \
+    && python -m playwright install --with-deps chromium
 
 COPY . .
 

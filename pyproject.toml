@@ -23,7 +23,8 @@ dependencies = [
   "schedule",
   "pyyaml",
   "python-dotenv",
-  "beautifulsoup4"
+  "beautifulsoup4",
+  "playwright>=1.45"
 ]
 
 [project.scripts]
