@@ -1,8 +1,11 @@
-import schedule
-import time
+import datetime
 import functools
+import os
+import sys
 import threading
-import os, sys
+import time
+
+import schedule
 import yaml
 
 from . import veille_competitive
@@ -190,14 +193,36 @@ def load_clients():
         schedule.every().day.at("00:05").do(cleanup, data_client["key"])
 
 
+def run_due_jobs():
+    """Run every due job. One failure is logged and rescheduled; the rest still run."""
+    due = [job for job in schedule.jobs if job.should_run]
+    for job in sorted(due):
+        try:
+            ret = job.run()
+        except Exception:
+            name = getattr(job.job_func, "__name__", repr(job.job_func))
+            logger.exception(
+                f"Scheduler job failed ({name}); continuing with the next cycle"
+            )
+            job.last_run = datetime.datetime.now()
+            try:
+                job._schedule_next_run()
+            except Exception:
+                logger.exception(f"Could not reschedule job {name} after failure")
+            continue
+        if isinstance(ret, schedule.CancelJob) or ret is schedule.CancelJob:
+            schedule.cancel_job(job)
+
+
 def main():
     setup_logging()
     logger.info("Before Scheduler")
     load_clients()
     logger.info("Scheduler started...")
     while True:
-        # Checks if a task is due
-        schedule.run_pending()
+        # Network calls are bounded (WuBook XML-RPC, Google Sheets), and a
+        # failed job must not stop the jobs that are also due.
+        run_due_jobs()
         # Wait 1 second to avoid using 100% CPU
         time.sleep(1)
     

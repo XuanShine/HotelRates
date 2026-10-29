@@ -8,9 +8,18 @@ from dotenv import load_dotenv
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
 from oauth2client.service_account import ServiceAccountCredentials
 
+from .http_timeout import mount_http_timeouts
+
 load_dotenv()
 
 pd.set_option("future.no_silent_downcasting", True)
+
+# (connect, read) in seconds. None would wait forever on a stalled socket.
+SHEETS_TIMEOUT = (
+    float(os.getenv("SHEETS_CONNECT_TIMEOUT", "10")),
+    float(os.getenv("SHEETS_READ_TIMEOUT", "60")),
+)
+SHEETS_RETRIES = int(os.getenv("SHEETS_RETRIES", "2"))
 
 SCOPES = [
     "https://spreadsheets.google.com/feeds",
@@ -59,6 +68,8 @@ def _service_account_info():
 
 _creds = ServiceAccountCredentials.from_json_keyfile_dict(_service_account_info(), SCOPES)
 client = gspread.authorize(_creds)
+client.set_timeout(SHEETS_TIMEOUT)
+mount_http_timeouts(client.http_client.session, SHEETS_TIMEOUT, SHEETS_RETRIES)
 
 
 def load_df(sheet_key, worksheet="Feuille1"):

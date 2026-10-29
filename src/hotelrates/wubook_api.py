@@ -1,16 +1,21 @@
 # version 0.9
-import os, sys
-import pickle
+import errno
+import http.client
+import os
+import socket
+import ssl
+import sys
 import time
-from dataclasses import dataclass
-from datetime import date
+import urllib.parse
+from datetime import date, datetime, timedelta
+from xml.parsers.expat import ExpatError
+
+import xmlrpc.client
+from dotenv import load_dotenv
+from loguru import logger
+
 C = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(C)
-
-from datetime import datetime, timedelta
-import xmlrpc.client
-from loguru import logger
-from dotenv import load_dotenv
 load_dotenv()
 
 
@@ -53,10 +58,146 @@ password = os.getenv('WUBOOK_PASSWORD')
 
 MIN_PRICE = 45
 
+# A stalled WuBook TCP connection used to block the scheduler forever
+# (no socket timeout on xmlrpc.client.ServerProxy).
+RPC_TIMEOUT = float(os.getenv("WUBOOK_RPC_TIMEOUT", "60"))
+RPC_ATTEMPTS = int(os.getenv("WUBOOK_RPC_ATTEMPTS", "3"))
+RPC_BACKOFF_SECONDS = float(os.getenv("WUBOOK_RPC_BACKOFF", "2"))
+RPC_BACKOFF_MAX = float(os.getenv("WUBOOK_RPC_BACKOFF_MAX", "30"))
+
+def _errnos(*names):
+    found = set()
+    for name in names:
+        value = getattr(errno, name, None)
+        if isinstance(value, int):
+            found.add(value)
+    return found
+
+
+_TRANSIENT_ERRNOS = _errnos(
+    "EAI_AGAIN",
+    "EAGAIN",
+    "ECONNABORTED",
+    "ECONNREFUSED",
+    "ECONNRESET",
+    "EHOSTDOWN",
+    "EHOSTUNREACH",
+    "ENETDOWN",
+    "ENETRESET",
+    "ENETUNREACH",
+    "EPIPE",
+    "ESHUTDOWN",
+    "ETIMEDOUT",
+    "EWOULDBLOCK",
+)
+_gai_again = getattr(socket, "EAI_AGAIN", None)
+if isinstance(_gai_again, int):
+    _TRANSIENT_ERRNOS.add(_gai_again)
+
+
+def _is_transient(exc):
+    """Timeouts, truncated XML (ExpatError), and dropped connections."""
+    if isinstance(exc, xmlrpc.client.Fault):
+        return False
+    if isinstance(exc, xmlrpc.client.ProtocolError):
+        code = exc.errcode or 0
+        return code in (408, 429) or code >= 500
+    if isinstance(exc, socket.gaierror):
+        return True
+    if isinstance(
+        exc,
+        (
+            TimeoutError,
+            ConnectionError,
+            http.client.IncompleteRead,
+            http.client.BadStatusLine,
+            ExpatError,
+            xmlrpc.client.ResponseError,
+            ssl.SSLError,
+        ),
+    ):
+        return True
+    return isinstance(exc, OSError) and getattr(exc, "errno", None) in _TRANSIENT_ERRNOS
+
+
+class _TimeoutMixin:
+    """Set a socket timeout on the connection xmlrpc builds for each host."""
+
+    def __init__(self, *args, timeout=RPC_TIMEOUT, **kwargs):
+        self._rpc_timeout = timeout
+        super().__init__(*args, **kwargs)
+
+    def make_connection(self, host):
+        conn = super().make_connection(host)
+        if conn is not None:
+            conn.timeout = self._rpc_timeout
+        return conn
+
+
+class TimeoutTransport(_TimeoutMixin, xmlrpc.client.Transport):
+    """HTTP transport with a socket timeout."""
+
+
+class TimeoutSafeTransport(_TimeoutMixin, xmlrpc.client.SafeTransport):
+    """HTTPS transport with a socket timeout."""
+
+
+def _server_proxy(endpoint, timeout=None):
+    if timeout is None:
+        timeout = RPC_TIMEOUT
+    scheme = urllib.parse.urlsplit(endpoint).scheme
+    if scheme == "https":
+        transport = TimeoutSafeTransport(timeout=timeout)
+    elif scheme == "http":
+        transport = TimeoutTransport(timeout=timeout)
+    else:
+        raise ValueError(f"Unsupported WuBook URL scheme: {scheme!r}")
+    return xmlrpc.client.ServerProxy(endpoint, transport=transport, verbose=False)
+
+
+def _close_proxy(server):
+    transport = getattr(server, "_ServerProxy__transport", None)
+    if transport is None:
+        return
+    try:
+        transport.close()
+    except Exception:
+        logger.debug("WuBook transport close failed")
+
+
+def _rpc_call(server, method, *args):
+    """Call one XML-RPC method. Retry timeouts and other transient errors."""
+    func = getattr(server, method)
+    attempts = max(1, int(RPC_ATTEMPTS))
+    backoff = float(RPC_BACKOFF_SECONDS)
+    last_exc = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return func(*args)
+        except Exception as exc:
+            last_exc = exc
+            if attempt >= attempts or not _is_transient(exc):
+                logger.error(
+                    f"WuBook {method} failed (attempt {attempt}/{attempts}): {exc!r}"
+                )
+                raise
+            delay = min(backoff * (2 ** (attempt - 1)), float(RPC_BACKOFF_MAX))
+            logger.warning(
+                f"WuBook {method} transient error (attempt {attempt}/{attempts}): "
+                f"{exc!r}; retrying in {delay:.1f}s"
+            )
+            _close_proxy(server)
+            if delay > 0:
+                time.sleep(delay)
+    raise last_exc
+
+
 class Wubook:
     def __init__(self):
-        self.server = xmlrpc.client.ServerProxy(url, verbose=False)
-        self.returnCode, self.token = self.server.acquire_token(user, password, pkey)
+        self.server = _server_proxy(url)
+        self.returnCode, self.token = _rpc_call(
+            self.server, "acquire_token", user, password, pkey
+        )
         if self.returnCode != 0:
             logger.warning("Can’t connect to server")
         else:
@@ -66,21 +207,22 @@ class Wubook:
         return self.server, self.token
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
-        if exception_type != None:
+        if exception_type is not None:
             logger.error(exception_value)
             logger.error(exception_traceback)
+        # Release even after a failed call so a timed-out cycle does not leak
+        # the token and block the next acquire_token.
+        if self.returnCode != 0:
+            return False
+        try:
+            self.server.release_token(self.token)
+        except Exception as exc:
+            logger.warning(
+                f"Error while releasing token from wubook server: {exc!r}"
+            )
         else:
-            if self.returnCode != 0:  # N’a pas pu se connecter au serveur
-                pass
-            else:
-                try:
-                    self.server.release_token(self.token)
-                except xmlrpc.client.ProtocolError as e:
-                    logger.warning(
-                        f"ProtocolError while realeasing token from wubook server: \n{e}"
-                    )
-                else:
-                    logger.info("Server disconnected")
+            logger.info("Server disconnected")
+        return False
 
 
 def get_avail(dfrom, dto):
@@ -94,7 +236,9 @@ def get_avail(dfrom, dto):
     if datetime.strptime(dfrom, "%d/%m/%Y").date() < date.today():
         dfrom = date.today().strftime("%d/%m/%Y")
     with Wubook() as (server, token):
-        return_code, avail = server.fetch_rooms_values(token, lcode, dfrom, dto)
+        return_code, avail = _rpc_call(
+            server, "fetch_rooms_values", token, lcode, dfrom, dto
+        )
 
     if return_code != 0:
         raise ConnectionError(f"in get_avail({dfrom}, {dto}) error: {avail}")
@@ -120,8 +264,12 @@ def get_prices_avail_today():
         dnow = datetime.now() - timedelta(days=1)
     dfrom = dto = dnow.strftime("%d/%m/%Y")
     with Wubook() as (server, token):
-        return_code, plan_prices = server.fetch_plan_prices(token, lcode, 0, dfrom, dto)
-        return_code2, avails = server.fetch_rooms_values(token, lcode, dfrom, dto)
+        return_code, plan_prices = _rpc_call(
+            server, "fetch_plan_prices", token, lcode, 0, dfrom, dto
+        )
+        return_code2, avails = _rpc_call(
+            server, "fetch_rooms_values", token, lcode, dfrom, dto
+        )
     if return_code != 0:
         raise ConnectionError(f"in get_prices_today(), error: {plan_prices}")
     if return_code2 != 0:
@@ -143,4 +291,6 @@ def upload_prices(dfrom, prices, pid=0):
         }
     """
     with Wubook() as (server, token):
-        logger.info(server.update_plan_prices(token, lcode, pid, dfrom, prices))
+        logger.info(
+            _rpc_call(server, "update_plan_prices", token, lcode, pid, dfrom, prices)
+        )
